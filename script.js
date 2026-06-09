@@ -2,10 +2,6 @@ const form = document.getElementById('applicationForm');
 const sendCodeBtn = document.getElementById('sendCodeBtn');
 const toast = document.getElementById('toast');
 
-let demoCode = '';
-let countdown = 0;
-let timer = null;
-
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add('show');
@@ -13,6 +9,7 @@ function showToast(message) {
 }
 
 function setError(field, message) {
+  if (!field) return;
   const wrapper = field.closest('.field');
   if (!wrapper) return;
   const error = wrapper.querySelector('.error');
@@ -23,47 +20,30 @@ function isPhone(value) {
   return /^1[3-9]\d{9}$/.test(value.trim());
 }
 
-function startCountdown() {
-  countdown = 60;
-  sendCodeBtn.disabled = true;
-  sendCodeBtn.textContent = `${countdown}s 后重试`;
-  timer = setInterval(() => {
-    countdown -= 1;
-    sendCodeBtn.textContent = `${countdown}s 后重试`;
-    if (countdown <= 0) {
-      clearInterval(timer);
-      sendCodeBtn.disabled = false;
-      sendCodeBtn.textContent = '获取验证码';
-    }
-  }, 1000);
-}
-
-sendCodeBtn.addEventListener('click', () => {
-  const phoneInput = form.elements.phone;
-  const phone = phoneInput.value;
-  setError(phoneInput, '');
-
-  if (!isPhone(phone)) {
-    setError(phoneInput, '请输入正确的 11 位手机号');
-    return;
+// 第一版正式可用：暂时隐藏验证码区域，只保留手机号。
+(function hideSmsFields() {
+  if (sendCodeBtn) {
+    const phoneRow = sendCodeBtn.closest('.phone-row');
+    sendCodeBtn.style.display = 'none';
+    if (phoneRow) phoneRow.style.gridTemplateColumns = '1fr';
   }
 
-  demoCode = String(Math.floor(100000 + Math.random() * 900000));
-  startCountdown();
-
-  // 正式上线时，在这里调用后端短信接口，例如：
-  // fetch('/api/send-sms-code', { method: 'POST', body: JSON.stringify({ phone }) })
-  showToast(`演示验证码：${demoCode}。正式上线后这里会改为短信发送。`);
-});
+  const smsField = form.elements.smsCode;
+  if (smsField) {
+    smsField.removeAttribute('required');
+    const smsWrapper = smsField.closest('.field');
+    if (smsWrapper) smsWrapper.style.display = 'none';
+  }
+})();
 
 function validateForm() {
   let valid = true;
-  const requiredFields = ['studentName', 'age', 'educationStage', 'major', 'aiLevel', 'phone', 'smsCode'];
+  const requiredFields = ['studentName', 'age', 'educationStage', 'major', 'aiLevel', 'phone'];
 
   requiredFields.forEach((name) => {
     const field = form.elements[name];
     setError(field, '');
-    if (!field.value.trim()) {
+    if (!field || !String(field.value || '').trim()) {
       setError(field, '此项为必填项');
       valid = false;
     }
@@ -80,18 +60,10 @@ function validateForm() {
     valid = false;
   }
 
-  if (!demoCode) {
-    setError(form.elements.smsCode, '请先获取验证码');
-    valid = false;
-  } else if (form.elements.smsCode.value.trim() !== demoCode) {
-    setError(form.elements.smsCode, '验证码不正确');
-    valid = false;
-  }
-
   const consentError = document.querySelector('.consent-error');
-  consentError.textContent = '';
+  if (consentError) consentError.textContent = '';
   if (!form.elements.consent.checked) {
-    consentError.textContent = '请勾选信息确认与联系授权';
+    if (consentError) consentError.textContent = '请勾选信息确认与联系授权';
     valid = false;
   }
 
@@ -102,10 +74,11 @@ function collectFormData() {
   const data = Object.fromEntries(new FormData(form).entries());
   data.goals = Array.from(form.querySelectorAll('input[name="goals"]:checked')).map(item => item.value);
   data.submittedAt = new Date().toISOString();
+  data.sourcePage = window.location.href;
   return data;
 }
 
-form.addEventListener('submit', (event) => {
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   if (!validateForm()) {
@@ -113,15 +86,38 @@ form.addEventListener('submit', (event) => {
     return;
   }
 
-  const data = collectFormData();
-  console.log('报名申请数据：', data);
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalText = submitBtn ? submitBtn.textContent : '';
 
-  // 静态网站无法直接保存数据。正式上线时，可在这里接入：
-  // 1. 飞书 / 企业微信 / Airtable / Notion 表单接口
-  // 2. 自建后端 API
-  // 3. 第三方表单平台 Webhook
+  try {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = '正在提交...';
+    }
 
-  form.reset();
-  demoCode = '';
-  showToast('报名申请已提交。正式上线后这里会写入后台并通知运营人员。');
+    const data = collectFormData();
+
+    const response = await fetch('/.netlify/functions/submit-application', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || '提交失败，请稍后重试');
+    }
+
+    form.reset();
+    showToast('报名申请已提交成功，项目老师会尽快联系您。');
+  } catch (error) {
+    console.error('提交报名失败：', error);
+    showToast(error.message || '提交失败，请稍后重试。');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText || '提交报名申请';
+    }
+  }
 });
