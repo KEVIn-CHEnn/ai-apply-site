@@ -66,6 +66,20 @@ exports.handler = async (event) => {
       };
     }
 
+    const testUrl =
+  `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables`;
+
+const testRes = await fetch(testUrl, {
+  method: 'GET',
+  headers: {
+    Authorization: `Bearer ${tokenJson.tenant_access_token}`,
+  },
+});
+
+const testJson = await testRes.json();
+
+console.log('TABLE_TEST:', JSON.stringify(testJson));
+    
     const recordUrl = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records`;
 
     const fields = {
