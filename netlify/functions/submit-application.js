@@ -83,18 +83,21 @@ console.log('TABLE_TEST:', JSON.stringify(testJson));
     const recordUrl = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records`;
 
     const fields = {
-      '学生姓名': data.studentName || '',
-      '年龄': Number(data.age) || null,
-      '当前阶段': data.educationStage || '',
-      '学校名称': data.school || '',
-      '兴趣方向': data.major || '',
-      'AI基础': data.aiLevel || '',
-      '提升目标': Array.isArray(data.goals) ? data.goals.join('、') : '',
-      '家长姓名': data.parentName || '',
-      '关系': data.relation || '',
-      '手机号': data.phone || '',
-      '微信邮箱': data.contact || '',
-      '补充说明': data.notes || '',
+     '学生姓名': String(data.studentName || ''),
+  '年龄': String(data.age || ''),
+  '当前阶段': String(data.educationStage || ''),
+  '学校名称': String(data.school || ''),
+  '兴趣方向': String(data.major || ''),
+  'AI基础': String(data.aiLevel || ''),
+  '提升目标': Array.isArray(data.goals)
+      ? data.goals.join('、')
+      : String(data.goals || ''),
+  '家长姓名': String(data.parentName || ''),
+  '关系': String(data.relation || ''),
+  '手机号': String(data.phone || ''),
+  '微信邮箱': String(data.contact || ''),
+  '补充说明': String(data.notes || ''),
+  '是否勾选': '否'
     };
 
     const createRes = await fetch(recordUrl, {
