@@ -96,6 +96,15 @@ exports.handler = async (event) => {
 
     const createJson = await createRes.json();
 
+    console.log(
+  'APP_TOKEN:',
+  FEISHU_APP_TOKEN,
+  'TABLE_ID:',
+  FEISHU_TABLE_ID,
+  'RESULT:',
+  JSON.stringify(createJson)
+);
+    
     if (!createRes.ok || createJson.code !== 0) {
       console.error('写入飞书多维表格失败：', createJson);
       return {
