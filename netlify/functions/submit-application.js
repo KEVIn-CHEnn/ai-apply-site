@@ -83,7 +83,6 @@ console.log('TABLE_TEST:', JSON.stringify(testJson));
     const recordUrl = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records`;
 
     const fields = {
-      '提交时间': data.submittedAt ? new Date(data.submittedAt).getTime() : Date.now(),
       '学生姓名': data.studentName || '',
       '年龄': Number(data.age) || null,
       '当前阶段': data.educationStage || '',
@@ -96,7 +95,6 @@ console.log('TABLE_TEST:', JSON.stringify(testJson));
       '手机号': data.phone || '',
       '微信邮箱': data.contact || '',
       '补充说明': data.notes || '',
-      '来源页面': data.sourcePage || '',
     };
 
     const createRes = await fetch(recordUrl, {
